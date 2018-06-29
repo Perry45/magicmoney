@@ -42,7 +42,7 @@ public class HomeActivity extends NavigationActivity
     private TransactionAdapter mAdapter;
     private TextView balanceView;
     List<Transaction> transactions;
-    List<IdNames> nameList;
+    List<IdNames> nameList = new ArrayList<IdNames>();
 
 
 
