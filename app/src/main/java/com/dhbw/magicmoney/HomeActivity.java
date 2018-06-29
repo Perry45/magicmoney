@@ -27,8 +27,10 @@ import com.j256.ormlite.support.ConnectionSource;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 
 public class HomeActivity extends NavigationActivity
@@ -42,7 +44,7 @@ public class HomeActivity extends NavigationActivity
     private TransactionAdapter mAdapter;
     private TextView balanceView;
     List<Transaction> transactions;
-    List<IdNames> nameList = new ArrayList<>();
+    Map<Integer, String> nameList = new HashMap<>();
 
 
 
@@ -94,7 +96,7 @@ public class HomeActivity extends NavigationActivity
 
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
 
-        mAdapter = new TransactionAdapter(transactionList);
+        mAdapter = new TransactionAdapter(transactionList, nameList);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -193,7 +195,7 @@ public class HomeActivity extends NavigationActivity
                 }
                 for (int i : set) {
                     dbuser = userDao.queryForEq("ID", i).get(0);
-                    nameList.add(new IdNames(i, dbuser.getForename() + " " + dbuser.getName()));
+                    nameList.put(i, dbuser.getForename() + " " + dbuser.getName());
                 }
 
                 Log.d("Result", Integer.toString(transactions.size()));
@@ -282,13 +284,4 @@ public class HomeActivity extends NavigationActivity
 
 
 
-}
-
-class IdNames{
-    int id;
-    String name;
-    public IdNames(int id, String name) {
-        this.id = id;
-        this.name = name;
-    }
 }
