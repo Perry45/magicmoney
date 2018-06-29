@@ -27,6 +27,7 @@ import com.j256.ormlite.support.ConnectionSource;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -41,6 +42,7 @@ public class HomeActivity extends NavigationActivity
     private TransactionAdapter mAdapter;
     private TextView balanceView;
     List<Transaction> transactions;
+    List<IdNames> nameList;
 
 
 
@@ -158,7 +160,7 @@ public class HomeActivity extends NavigationActivity
 
         @Override
         protected Boolean doInBackground(Void... voids) {
-
+            User dbuser;
             ConnectionSource connectionSource = null;
             try {
                 Class.forName("com.mysql.jdbc.Driver").newInstance();
@@ -166,6 +168,7 @@ public class HomeActivity extends NavigationActivity
                 connectionSource = new JdbcConnectionSource("jdbc:mysql://den1.mysql2.gear.host:3306/magicmoney?autoReconnect=true&useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC", "magicmoney", "magic!");
                 // setup our database and DAOs
                 Dao<Transaction, Integer> transactionDao = DaoManager.createDao(connectionSource, Transaction.class);
+                Dao<User, Integer> userDao = DaoManager.createDao(connectionSource, User.class);
                 sampleTransaction = new Transaction();
 
                 QueryBuilder<Transaction, Integer> qb = transactionDao.queryBuilder();
@@ -178,6 +181,20 @@ public class HomeActivity extends NavigationActivity
                 PreparedQuery<Transaction> preparedQuery = qb.prepare();
 
                 transactions =  qb.query();
+
+                HashSet<Integer> set = new HashSet<Integer>();
+                for (int i = 0; i < transactions.size(); i++) {
+                    if(transactions.get(i).receiverID != user.getID()){
+                       set.add(transactions.get(i).receiverID);
+                    }
+                    if(transactions.get(i).senderID != user.getID()){
+                        set.add(transactions.get(i).senderID);
+                    }
+                }
+                for (int i : set) {
+                    dbuser = userDao.queryForEq("ID", i).get(0);
+                    nameList.add(new IdNames(i, dbuser.getForename() + " " + dbuser.getName()));
+                }
 
                 Log.d("Result", Integer.toString(transactions.size()));
 
@@ -265,4 +282,13 @@ public class HomeActivity extends NavigationActivity
 
 
 
+}
+
+class IdNames{
+    int id;
+    String name;
+    public IdNames(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
 }
