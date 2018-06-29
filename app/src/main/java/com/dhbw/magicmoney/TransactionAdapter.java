@@ -60,8 +60,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             name = nameList.get(transaction.getReceiverID());
         }
         holder.tvTransactionReceiver.setText("an: "+name);
-        // TODO Different Actions if sender / receiver = is User
-        holder.tvTransactionDate.setText(transaction.getTimestamp().toString());
+        holder.tvTransactionDate.setText(transaction.getFormattedDate());
         //TODO Format-DatesString
 
     }

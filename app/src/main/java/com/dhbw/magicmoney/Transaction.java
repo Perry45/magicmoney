@@ -6,6 +6,7 @@ import com.j256.ormlite.table.DatabaseTable;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
@@ -80,6 +81,11 @@ public class Transaction {
 
     public String getEURBalance(){
         return NumberFormat.getCurrencyInstance(Locale.GERMANY).format((this.getTransferValue()));
+    }
+
+    public String getFormattedDate(){
+        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+        return sdf.format(this.getTimestamp());
     }
 
 }
