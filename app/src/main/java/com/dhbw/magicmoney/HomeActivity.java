@@ -121,15 +121,14 @@ public class HomeActivity extends NavigationActivity
 
     private void generateTransactions() {
 
-        //TODO the following parts tries to show the transactions from the DB but it does not work
-        for (Transaction t : transactions) {
-            Transaction u = new Transaction(t.getSenderID(), t.getReceiverID(), t.getTransferValue(),t.getTimestamp());
+            for (Transaction t : transactions) {
+                Transaction u = new Transaction(t.getSenderID(), t.getReceiverID(), t.getTransferValue(), t.getTimestamp());
 
-            transactionList.add(u);
-        }
+                transactionList.add(u);
+            }
 
-        //Transaction u = new Transaction(1,2,2.5);
-        //transactionList.add(u);
+            //Transaction u = new Transaction(1,2,2.5);
+            //transactionList.add(u);
 
 //        u = new Transaction(1,2,2.5);
 //        transactionList.add(u);
@@ -282,6 +281,15 @@ public class HomeActivity extends NavigationActivity
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
 
-
+                balanceView.setText("Berechne dein Guthaben...");
+            }
+        });
+    }
 }

@@ -49,19 +49,26 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     public void onBindViewHolder(MyViewHolder holder, int position) {
         Transaction transaction = transactionList.get(position);
         holder.tvTransactionVolume.setText(transaction.getEURBalance());
+        holder.tvTransactionDate.setText(transaction.getFormattedDate());
 
+        String name = "noinfo";
+
+        // If: means current User is sender
         if (nameList.get(transaction.getReceiverID()) != null){
             holder.tvTransactionVolume.setText("-"+transaction.getEURBalance());
             holder.tvTransactionVolume.setTextColor(Color.parseColor("#FF4081"));
-        }
-
-        String name = "Dich";
-        if(nameList.get(transaction.getReceiverID()) != null) {
             name = nameList.get(transaction.getReceiverID());
-        }
-        holder.tvTransactionReceiver.setText("an: "+name);
-        holder.tvTransactionDate.setText(transaction.getFormattedDate());
-        //TODO Format-DatesString
+            holder.tvTransactionReceiver.setText("an: "+name);
+            //holder.title.setText("Du hast Geld gesendet.");
+
+        // current User is receiver
+        }else if (nameList.get(transaction.getSenderID()) != null){
+            //holder.title.setText("Du hast Geld erhalten.");
+            name = nameList.get(transaction.getSenderID());
+            holder.tvTransactionReceiver.setText("von: "+name);
+        }else {}
+
+
 
     }
 
