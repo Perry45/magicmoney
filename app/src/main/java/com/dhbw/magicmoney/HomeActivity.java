@@ -102,7 +102,6 @@ public class HomeActivity extends NavigationActivity
         getTransactionsTask =  new GetTransactionsTask();
         getTransactionsTask.execute();
 
-        generateTransactions();
 
     }
 
@@ -119,11 +118,11 @@ public class HomeActivity extends NavigationActivity
     private void generateTransactions() {
 
         //TODO the following parts tries to show the transactions from the DB but it does not work
-        /* for (Transaction t : transactions) {
-            Transaction u = new Transaction(t.senderID, t.receiverID, t.getTransferValue());
+        for (Transaction t : transactions) {
+            Transaction u = new Transaction(t.getSenderID(), t.getReceiverID(), t.getTransferValue(),t.getTimestamp());
 
             transactionList.add(u);
-        }*/
+        }
 
         //Transaction u = new Transaction(1,2,2.5);
         //transactionList.add(u);
@@ -149,6 +148,13 @@ public class HomeActivity extends NavigationActivity
 
         boolean success;
         private Transaction sampleTransaction;
+
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+            generateTransactions();
+        }
 
         @Override
         protected Boolean doInBackground(Void... voids) {
@@ -196,6 +202,8 @@ public class HomeActivity extends NavigationActivity
             }
             return success;
         }
+
+
     }
 
     /* Task to get current Balance from DB */

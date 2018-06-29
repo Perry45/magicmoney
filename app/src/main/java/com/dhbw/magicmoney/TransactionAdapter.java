@@ -50,9 +50,12 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         if (transaction.getVolume()<0){
             holder.tvTransactionVolume.setTextColor(Color.parseColor("#FF4081"));
         }
-        holder.tvTransactionReceiver.setText("an: "+transaction.getEmailReceiver());
-        holder.tvTransactionDate.setText(transaction.getDate().toString());
         */
+        holder.tvTransactionReceiver.setText("an: "+transaction.getReceiverID());
+        // TODO Different Actions if sender / receiver = is User
+        holder.tvTransactionDate.setText(transaction.getTimestamp().toString());
+        //TODO Format-DatesString
+
     }
 
     @Override

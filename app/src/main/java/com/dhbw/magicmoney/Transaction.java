@@ -30,6 +30,14 @@ public class Transaction {
         this.transferValue = transferValue;
     }
 
+
+    public Transaction(int senderID, int receiverID, double transferValue, Date time) {
+        this.senderID = senderID;
+        this.receiverID = receiverID;
+        this.transferValue = transferValue;
+        this.timestamp = time;
+    }
+
     public  Transaction(){
 
     }
