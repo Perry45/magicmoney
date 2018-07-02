@@ -1,7 +1,10 @@
 package com.dhbw.magicmoney;
 
 import android.accounts.Account;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -24,6 +27,17 @@ import com.j256.ormlite.stmt.UpdateBuilder;
 import com.j256.ormlite.stmt.Where;
 import com.j256.ormlite.support.ConnectionSource;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -31,6 +45,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 
 public class HomeActivity extends NavigationActivity
@@ -71,6 +92,7 @@ public class HomeActivity extends NavigationActivity
         Bundle bundle = intent.getExtras();
         if(bundle != null)
         {
+            //TODO make this fuckin shit somehow work
             user.setUsername((String) bundle.get("username"));
             user.setEmail((String) bundle.get("email"));
             user.setBalance((Double)bundle.get("balance"));
@@ -78,10 +100,36 @@ public class HomeActivity extends NavigationActivity
             user.setName((String) bundle.get("name"));
             user.setID(Integer.parseInt(bundle.get("id").toString()));
 
-            balanceView.setText(user.getEURBalance());
+            if (checkActiveInternetConnection()) {
 
-            getBalanceTask = new GetBalanceTask();
-            getBalanceTask.execute();
+                balanceView.setText(user.getEURBalance());
+
+                getBalanceTask = new GetBalanceTask();
+                getBalanceTask.execute();
+            } else{
+                File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+                try {
+
+                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                    factory.setNamespaceAware(false);
+                    factory.setValidating(false);
+                    DocumentBuilder builder = factory.newDocumentBuilder();
+
+                    Document document = builder.parse(file);
+                    Element catalog = document.getDocumentElement();
+                    NodeList nodeList = catalog.getChildNodes();
+
+                    Node balanceNode = nodeList.item(13);
+                    balanceView.setText(LoginActivity.getCharacterData(balanceNode));
+
+
+                    finish();
+
+                }catch (Exception e){
+                    System.out.println(e);
+                }
+            }
 
         }
 
@@ -103,10 +151,42 @@ public class HomeActivity extends NavigationActivity
         recyclerView.setAdapter(mAdapter);
 
 
-        getTransactionsTask =  new GetTransactionsTask();
-        getTransactionsTask.execute();
+        if (checkActiveInternetConnection()) {
+            getTransactionsTask = new GetTransactionsTask();
+            getTransactionsTask.execute();
+        }
 
 
+    }
+    private boolean isNetworkAvailable() {
+        ConnectivityManager manager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        boolean isAvailable = false;
+        if (networkInfo != null && networkInfo.isConnected()) {
+            // Network is present and connected
+            isAvailable = true;
+        }
+        return isAvailable;
+    }
+
+    private boolean checkActiveInternetConnection() {
+        if (isNetworkAvailable()) {
+            try {
+                HttpURLConnection urlc = (HttpURLConnection) (new URL("http://www.google.com").openConnection());
+                urlc.setRequestProperty("User-Agent", "Test");
+                urlc.setRequestProperty("Connection", "close");
+                urlc.setConnectTimeout(1500);
+                urlc.connect();
+                return (urlc.getResponseCode() == 200);
+
+            } catch (IOException e) {
+                Log.e("Error: ", e.toString());
+            }
+        } else {
+            Log.d("Network", "No network present");
+        }
+        return false;
     }
 
     @Override
@@ -278,6 +358,29 @@ public class HomeActivity extends NavigationActivity
                 }
             }
             return success;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean){
+
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                Document doc = builder.parse(getApplicationContext().openFileInput("user.xml"));
+
+                Node node = doc.getElementById("balance");
+                node.setNodeValue(Double.toString(user.balance));
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                DOMSource dSource = new DOMSource(doc);
+                StreamResult result = new StreamResult(getApplicationContext().openFileOutput("user.xml", Context.MODE_PRIVATE));
+                transformer.transform(dSource, result);
+
+                Log.d("XML", "Balance update successful");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 

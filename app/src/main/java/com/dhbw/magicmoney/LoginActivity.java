@@ -3,7 +3,10 @@ package com.dhbw.magicmoney;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v7.app.AppCompatActivity;
 
 import android.os.AsyncTask;
@@ -11,6 +14,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
+import android.util.Xml;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -24,6 +29,23 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+import org.xmlpull.v1.XmlSerializer;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * A login screen that offers login via email/password.
@@ -42,10 +64,13 @@ public class LoginActivity extends AppCompatActivity {
     private View mProgressView;
     private View mLoginFormView;
 
+    private Boolean isOnline = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
 
@@ -66,7 +91,11 @@ public class LoginActivity extends AppCompatActivity {
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin();
+                if(checkActiveInternetConnection()) {
+                    attemptLogin();
+                } else{
+                    attemptOfflineLogin();
+                }
             }
         });
 
@@ -80,6 +109,114 @@ public class LoginActivity extends AppCompatActivity {
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+    }
+
+    private void attemptOfflineLogin() {
+        if (mAuthTask != null) {
+            return;
+        }
+
+        // Reset errors.
+        mEmailView.setError(null);
+        mPasswordView.setError(null);
+
+        // Store values at the time of the login attempt.
+        String email = mEmailView.getText().toString();
+        String password = mPasswordView.getText().toString();
+
+        boolean cancel = false;
+        View focusView = null;
+
+        // Check for a valid password, if the user entered one.
+        if (password.isEmpty()) {
+            mPasswordView.setError(getString(R.string.error_field_required));
+            focusView = mPasswordView;
+            cancel = true;
+        }
+
+        // Check for a valid email address.
+        if (TextUtils.isEmpty(email)) {
+            mEmailView.setError(getString(R.string.error_field_required));
+            focusView = mEmailView;
+            cancel = true;
+        } else if (!RegisterActivity.isValidEmailAddress(email)) {
+            mEmailView.setError(getString(R.string.error_invalid_email));
+            focusView = mEmailView;
+            cancel = true;
+        }
+
+        if (cancel) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            focusView.requestFocus();
+        }
+        else{
+            showProgress(true);
+
+            File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+            String idXML = null;
+            String usernameXML = null;
+            String emailXML = null;
+            String passwordXML = null;
+            String nameXML = null;
+            String forenameXML = null;
+            double balanceXML = 0;
+
+            try {
+
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(false);
+                factory.setValidating(false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+
+                Document document = builder.parse(file);
+                Element catalog = document.getDocumentElement();
+                NodeList nodeList = catalog.getChildNodes();
+
+                Node idNode = nodeList.item(1);
+                idXML = getCharacterData(idNode);
+
+                Node usernameNode = nodeList.item(3);
+                usernameXML = getCharacterData(usernameNode);
+
+                Node emailNode = nodeList.item(5);
+                emailXML = getCharacterData(emailNode);
+
+                Node passwordNode = nodeList.item(7);
+                passwordXML = getCharacterData(passwordNode);
+
+                Node nameNode = nodeList.item(9);
+                nameXML = getCharacterData(nameNode);
+
+                Node forenameNode = nodeList.item(11);
+                forenameXML = getCharacterData(forenameNode);
+
+                Node balanceNode = nodeList.item(13);
+                balanceXML = Double.parseDouble(getCharacterData(balanceNode));
+
+
+                finish();
+
+            }catch (Exception e){
+                System.out.println(e);
+            }
+
+            if (email.equals(emailXML) && password.equals(passwordXML)) {
+                Intent myIntent = new Intent(LoginActivity.this, HomeActivity.class);
+                myIntent.putExtra("id", idXML);
+                myIntent.putExtra("username", usernameXML);
+                myIntent.putExtra("email", emailXML);
+                myIntent.putExtra("password", passwordXML);
+                myIntent.putExtra("name", nameXML);
+                myIntent.putExtra("forename", forenameXML);
+                myIntent.putExtra("balance", balanceXML);
+                LoginActivity.this.startActivity(myIntent);
+            } else {
+                mPasswordView.setError(getString(R.string.error_incorrect_password));
+                mPasswordView.requestFocus();
+            }
+        }
     }
 
     /**
@@ -132,6 +269,52 @@ public class LoginActivity extends AppCompatActivity {
             mAuthTask = new UserLoginTask(email, password);
             mAuthTask.execute((Void) null);
         }
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager manager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        boolean isAvailable = false;
+        if (networkInfo != null && networkInfo.isConnected()) {
+            // Network is present and connected
+            isAvailable = true;
+        }
+        return isAvailable;
+    }
+
+    private boolean checkActiveInternetConnection() {
+        if (isNetworkAvailable()) {
+            try {
+                HttpURLConnection urlc = (HttpURLConnection) (new URL("http://www.google.com").openConnection());
+                urlc.setRequestProperty("User-Agent", "Test");
+                urlc.setRequestProperty("Connection", "close");
+                urlc.setConnectTimeout(1500);
+                urlc.connect();
+                return (urlc.getResponseCode() == 200);
+
+            } catch (IOException e) {
+                Log.e("Error: ", e.toString());
+            }
+        } else {
+            Log.d("Network", "No network present");
+        }
+        return false;
+    }
+
+    static public String getCharacterData(Node parent)
+    {
+        StringBuilder text = new StringBuilder();
+        if ( parent == null )
+            return text.toString();
+        NodeList children = parent.getChildNodes();
+        for (int k = 0, kn = children.getLength() ; k < kn ; k++) {
+            Node child = children.item(k);
+            if ( child.getNodeType() != Node.TEXT_NODE )
+                break;
+            text.append(child.getNodeValue());
+        }
+        return text.toString();
     }
 
     /**
@@ -233,6 +416,14 @@ public class LoginActivity extends AppCompatActivity {
 
             if (success) {
                 finish();
+
+                File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+                if(!file.exists()){
+                    createUserXML(user.getID(), user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getForename(), user.getBalance());
+                }
+
+
                 Intent myIntent = new Intent(LoginActivity.this,HomeActivity.class);
                 myIntent.putExtra("id", user.getID());
                 myIntent.putExtra("username", user.getUsername());
@@ -246,6 +437,88 @@ public class LoginActivity extends AppCompatActivity {
                 else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
+            }
+        }
+
+        private void createUserXML(int id, String username, String email, String password, String name, String forename, double balance) {
+
+            String filename = "user.xml";
+
+            try {
+
+                FileOutputStream fos = null;
+
+                fos = openFileOutput(filename, Context.MODE_APPEND);
+
+
+
+                XmlSerializer serializer = Xml.newSerializer();
+                serializer.setOutput(fos, "UTF-8");
+                serializer.startDocument(null, Boolean.valueOf(true));
+                serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+
+                serializer.startTag(null, "user");
+
+
+                serializer.startTag(null, "id");
+
+                serializer.text(Integer.toString(id));
+
+                serializer.endTag(null, "id");
+
+
+                serializer.startTag(null, "username");
+
+                serializer.text(username);
+
+                serializer.endTag(null, "username");
+
+
+                serializer.startTag(null, "email");
+
+                serializer.text(email);
+
+                serializer.endTag(null, "email");
+
+
+                serializer.startTag(null, "password");
+
+                serializer.text(password);
+
+                serializer.endTag(null, "password");
+
+
+                serializer.startTag(null, "name");
+
+                serializer.text(name);
+
+                serializer.endTag(null, "name");
+
+
+                serializer.startTag(null, "forename");
+
+                serializer.text(forename);
+
+                serializer.endTag(null, "forename");
+
+
+                serializer.startTag(null, "balance");
+
+                serializer.text(Double.toString(balance));
+
+                serializer.endTag(null, "balance");
+
+
+                serializer.endTag(null, "user");
+
+                serializer.endDocument();
+
+                serializer.flush();
+
+                fos.close();
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 

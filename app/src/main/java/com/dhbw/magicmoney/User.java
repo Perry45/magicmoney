@@ -33,7 +33,7 @@ public class User extends Application implements Serializable {
     private String forename;
 
     @DatabaseField(columnName = "Kontostand", canBeNull = false)
-    private double balance;
+    public double balance;
 
 
     public User(){

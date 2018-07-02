@@ -1,5 +1,6 @@
 package com.dhbw.magicmoney;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Xml;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,6 +18,11 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 
+import org.xmlpull.v1.XmlSerializer;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -182,9 +189,93 @@ public class RegisterActivity extends AppCompatActivity {
                 myIntent.putExtra("forename", user.getForename());
                 myIntent.putExtra("balance", user.getBalance());
                 RegisterActivity.this.startActivity(myIntent);
+
+                createUserXML(user.getID(), user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getForename(), user.getBalance());
             } else {
                 emailView.setError(getString(R.string.error_alreadyInUse_email));
                 emailView.requestFocus();
+            }
+        }
+
+        private void createUserXML(int id, String username, String email, String password, String name, String forename, double balance) {
+
+            String filename = "user.xml";
+
+            try {
+
+                FileOutputStream fos = null;
+
+                fos = openFileOutput(filename, Context.MODE_APPEND);
+
+
+
+                XmlSerializer serializer = Xml.newSerializer();
+                serializer.setOutput(fos, "UTF-8");
+                serializer.startDocument(null, Boolean.valueOf(true));
+                serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+
+                serializer.startTag(null, "user");
+
+
+                serializer.startTag(null, "id");
+
+                serializer.text(Integer.toString(id));
+
+                serializer.endTag(null, "id");
+
+
+                serializer.startTag(null, "username");
+
+                serializer.text(username);
+
+                serializer.endTag(null, "username");
+
+
+                serializer.startTag(null, "email");
+
+                serializer.text(email);
+
+                serializer.endTag(null, "email");
+
+
+                serializer.startTag(null, "password");
+
+                serializer.text(password);
+
+                serializer.endTag(null, "password");
+
+
+                serializer.startTag(null, "name");
+
+                serializer.text(name);
+
+                serializer.endTag(null, "name");
+
+
+                serializer.startTag(null, "forename");
+
+                serializer.text(forename);
+
+                serializer.endTag(null, "forename");
+
+
+                serializer.startTag(null, "balance");
+
+                serializer.text(Double.toString(balance));
+
+                serializer.endTag(null, "balance");
+
+
+                serializer.endTag(null, "user");
+
+                serializer.endDocument();
+
+                serializer.flush();
+
+                fos.close();
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
