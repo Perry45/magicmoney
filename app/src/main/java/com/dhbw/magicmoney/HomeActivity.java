@@ -90,8 +90,7 @@ public class HomeActivity extends NavigationActivity
         user = (User) getApplication();
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
-        if(bundle != null)
-        {
+        if(bundle != null) {
             //TODO make this fuckin shit somehow work
             user.setUsername((String) bundle.get("username"));
             user.setEmail((String) bundle.get("email"));
@@ -100,7 +99,7 @@ public class HomeActivity extends NavigationActivity
             user.setName((String) bundle.get("name"));
             user.setID(Integer.parseInt(bundle.get("id").toString()));
 
-            if (checkActiveInternetConnection()) {
+            if (isNetworkAvailable()) {
 
                 balanceView.setText(user.getEURBalance());
 
@@ -124,7 +123,7 @@ public class HomeActivity extends NavigationActivity
                     balanceView.setText(LoginActivity.getCharacterData(balanceNode));
 
 
-                    finish();
+                    //finish();
 
                 }catch (Exception e){
                     System.out.println(e);
@@ -151,42 +150,19 @@ public class HomeActivity extends NavigationActivity
         recyclerView.setAdapter(mAdapter);
 
 
-        if (checkActiveInternetConnection()) {
+        if (isNetworkAvailable()) {
             getTransactionsTask = new GetTransactionsTask();
             getTransactionsTask.execute();
         }
 
 
     }
+
     private boolean isNetworkAvailable() {
-        ConnectivityManager manager =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-        boolean isAvailable = false;
-        if (networkInfo != null && networkInfo.isConnected()) {
-            // Network is present and connected
-            isAvailable = true;
-        }
-        return isAvailable;
-    }
-
-    private boolean checkActiveInternetConnection() {
-        if (isNetworkAvailable()) {
-            try {
-                HttpURLConnection urlc = (HttpURLConnection) (new URL("http://www.google.com").openConnection());
-                urlc.setRequestProperty("User-Agent", "Test");
-                urlc.setRequestProperty("Connection", "close");
-                urlc.setConnectTimeout(1500);
-                urlc.connect();
-                return (urlc.getResponseCode() == 200);
-
-            } catch (IOException e) {
-                Log.e("Error: ", e.toString());
-            }
-        } else {
-            Log.d("Network", "No network present");
-        }
-        return false;
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
 
     @Override

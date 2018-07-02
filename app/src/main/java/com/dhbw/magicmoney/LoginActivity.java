@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -91,9 +92,11 @@ public class LoginActivity extends AppCompatActivity {
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(checkActiveInternetConnection()) {
+                if(isNetworkAvailable()) {
+                    System.out.println("ONLINE");
                     attemptLogin();
                 } else{
+                    System.out.println("OFFLINE");
                     attemptOfflineLogin();
                 }
             }
@@ -196,13 +199,15 @@ public class LoginActivity extends AppCompatActivity {
                 balanceXML = Double.parseDouble(getCharacterData(balanceNode));
 
 
-                finish();
+                //finish();
 
             }catch (Exception e){
                 System.out.println(e);
             }
-
+            System.out.println(emailXML);
+            System.out.println(passwordXML);
             if (email.equals(emailXML) && password.equals(passwordXML)) {
+                finish();
                 Intent myIntent = new Intent(LoginActivity.this, HomeActivity.class);
                 myIntent.putExtra("id", idXML);
                 myIntent.putExtra("username", usernameXML);
@@ -213,6 +218,7 @@ public class LoginActivity extends AppCompatActivity {
                 myIntent.putExtra("balance", balanceXML);
                 LoginActivity.this.startActivity(myIntent);
             } else {
+                showProgress(false);
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
             }
@@ -271,36 +277,14 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+
     private boolean isNetworkAvailable() {
-        ConnectivityManager manager =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-        boolean isAvailable = false;
-        if (networkInfo != null && networkInfo.isConnected()) {
-            // Network is present and connected
-            isAvailable = true;
-        }
-        return isAvailable;
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
 
-    private boolean checkActiveInternetConnection() {
-        if (isNetworkAvailable()) {
-            try {
-                HttpURLConnection urlc = (HttpURLConnection) (new URL("http://www.google.com").openConnection());
-                urlc.setRequestProperty("User-Agent", "Test");
-                urlc.setRequestProperty("Connection", "close");
-                urlc.setConnectTimeout(1500);
-                urlc.connect();
-                return (urlc.getResponseCode() == 200);
-
-            } catch (IOException e) {
-                Log.e("Error: ", e.toString());
-            }
-        } else {
-            Log.d("Network", "No network present");
-        }
-        return false;
-    }
 
     static public String getCharacterData(Node parent)
     {
