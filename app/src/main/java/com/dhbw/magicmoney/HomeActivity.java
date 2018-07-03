@@ -91,7 +91,6 @@ public class HomeActivity extends NavigationActivity
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
         if(bundle != null) {
-            //TODO make this fuckin shit somehow work
             user.setUsername((String) bundle.get("username"));
             user.setEmail((String) bundle.get("email"));
             user.setBalance((Double)bundle.get("balance"));
@@ -169,8 +168,33 @@ public class HomeActivity extends NavigationActivity
     public void onResume(){
         super.onResume();
 
-        getBalanceTask = new GetBalanceTask();
-        getBalanceTask.execute();
+        if(isNetworkAvailable()) {
+            getBalanceTask = new GetBalanceTask();
+            getBalanceTask.execute();
+        } else{
+            File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+            try {
+
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(false);
+                factory.setValidating(false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+
+                Document document = builder.parse(file);
+                Element catalog = document.getDocumentElement();
+                NodeList nodeList = catalog.getChildNodes();
+
+                Node balanceNode = nodeList.item(13);
+                balanceView.setText(LoginActivity.getCharacterData(balanceNode));
+
+
+                //finish();
+
+            }catch (Exception e){
+                System.out.println(e);
+            }
+        }
 
     }
 
@@ -366,8 +390,9 @@ public class HomeActivity extends NavigationActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-
-                balanceView.setText("Berechne dein Guthaben...");
+                if(isNetworkAvailable()) {
+                    balanceView.setText("Berechne dein Guthaben...");
+                }
             }
         });
     }

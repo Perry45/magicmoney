@@ -115,9 +115,9 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptOfflineLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
+//        if (mAuthTask != null) {
+//            return;
+//        }
 
         // Reset errors.
         mEmailView.setError(null);
