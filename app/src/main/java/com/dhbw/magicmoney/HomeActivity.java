@@ -59,6 +59,7 @@ public class HomeActivity extends NavigationActivity
 
     private GetTransactionsTask getTransactionsTask = null;
     private GetBalanceTask getBalanceTask = null;
+    private TransactionTask transactionTask = null;
     public static User user;
     private List<Transaction> transactionList = new ArrayList<>();
     private RecyclerView recyclerView;
@@ -86,6 +87,9 @@ public class HomeActivity extends NavigationActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         balanceView = (TextView) findViewById(R.id.home_balance_view);
+
+        if(isNetworkAvailable())
+            checkOpenTransactions();
 
         user = (User) getApplication();
         Intent intent = getIntent();
@@ -157,11 +161,69 @@ public class HomeActivity extends NavigationActivity
 
     }
 
+    private void checkOpenTransactions() {
+        //TODO test XML reading
+        //TODO write to DB
+        File file = new File(getApplicationContext().getFilesDir(),"transactions.xml");
+
+        if(file.exists()) {
+
+            try {
+
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(false);
+                factory.setValidating(false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+
+                Document document = builder.parse(file);
+                Element catalog = document.getDocumentElement();
+                NodeList transactions = catalog.getChildNodes();
+
+                Node idNode = transactions.item(1);
+                int receiverID = Integer.parseInt(getCharacterData(idNode));
+
+                Node usernameNode = transactions.item(3);
+                int senderID = Integer.parseInt(getCharacterData(usernameNode));
+
+                Node emailNode = transactions.item(5);
+                double transferValue = Double.parseDouble(getCharacterData(emailNode));
+
+
+                transactionTask = new TransactionTask(receiverID, senderID, transferValue);
+                transactionTask.execute();
+
+
+                //finish();
+
+                file.delete();
+
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+
+    }
+
     private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
+    }
+
+    static public String getCharacterData(Node parent)
+    {
+        StringBuilder text = new StringBuilder();
+        if ( parent == null )
+            return text.toString();
+        NodeList children = parent.getChildNodes();
+        for (int k = 0, kn = children.getLength() ; k < kn ; k++) {
+            Node child = children.item(k);
+            if ( child.getNodeType() != Node.TEXT_NODE )
+                break;
+            text.append(child.getNodeValue());
+        }
+        return text.toString();
     }
 
     @Override
@@ -381,6 +443,69 @@ public class HomeActivity extends NavigationActivity
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    /* Task to update Account Balance and to create a new Transaction into the Transaction DB */
+    public class TransactionTask extends AsyncTask<Void, Void, Boolean> {
+
+        private final int receiverID;
+        private final int senderID;
+        private final double transferValue;
+        private Transaction transaction;
+
+        TransactionTask(int receiverID, int senderID, double transferValue) {
+            this.receiverID = receiverID;
+            this.senderID = senderID;
+            this.transferValue = transferValue;
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+
+            boolean success;
+
+            transaction = new Transaction(senderID, receiverID, transferValue);
+
+            User u = (User) getApplication();
+
+            ConnectionSource connectionSource = null;
+            try {
+                Class.forName("com.mysql.jdbc.Driver").newInstance();
+                // create our data-source for the database
+                connectionSource = new JdbcConnectionSource("jdbc:mysql://den1.mysql2.gear.host:3306/magicmoney?autoReconnect=true&useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC", "magicmoney", "magic!");
+                // setup our database and DAOs
+                Dao<Transaction, Integer> transactionDao = DaoManager.createDao(connectionSource, Transaction.class);
+                Dao<User, Integer> userDao = DaoManager.createDao(connectionSource, User.class);
+                u = userDao.queryForEq("email", u.getEmail()).get(0);
+                User u2 = userDao.queryForEq("ID", senderID).get(0);
+                UpdateBuilder<User, Integer> updateBuilder = userDao.updateBuilder();
+                updateBuilder.updateColumnValue("Kontostand", u.getBalance() + transferValue);
+                updateBuilder.where().eq("email", u.getEmail());
+                updateBuilder.update();
+                updateBuilder.updateColumnValue("Kontostand", u2.getBalance() - transferValue);
+                updateBuilder.where().eq("ID", senderID);
+                updateBuilder.update();
+
+                transactionDao.create(transaction);
+                success = true;
+            } catch (Exception e) {
+                System.out.println(e);
+                e.printStackTrace();
+                success = false;
+            } finally {
+                // destroy the data source which should close underlying connections
+                if (connectionSource != null) {
+                    try {
+                        connectionSource.close();
+                    } catch (Exception e) {
+                        System.out.println(e);
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            return success;
         }
     }
 

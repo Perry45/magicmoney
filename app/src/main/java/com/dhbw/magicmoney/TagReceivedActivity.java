@@ -1,7 +1,10 @@
 package com.dhbw.magicmoney;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -13,6 +16,7 @@ import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Xml;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -25,8 +29,23 @@ import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.stmt.UpdateBuilder;
 import com.j256.ormlite.support.ConnectionSource;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xmlpull.v1.XmlSerializer;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter.OnNdefPushCompleteCallback, NfcAdapter.CreateNdefMessageCallback {
 
@@ -62,6 +81,26 @@ public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter
 
         u = (User) getApplication();
 
+        File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+        try {
+
+
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(false);
+            factory.setValidating(false);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+
+            Document document = builder.parse(file);
+            Element catalog = document.getDocumentElement();
+            NodeList nodeList = catalog.getChildNodes();
+
+            Node passwordNode = nodeList.item(7);
+            u.setPassword(getCharacterData(passwordNode));
+        } catch (Exception e){
+            System.out.print(e.toString());
+        }
+
         tvShowText = findViewById(R.id.tagReceived_textView);
         etCode = findViewById(R.id.tagReceived_code);
 
@@ -78,8 +117,11 @@ public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter
                 if (insertedCode.equals(code)){
                     Log.d("Code", "confirmed");
 
-                    attemptTransaction();
-
+                    if(isNetworkAvailable()) {
+                        attemptTransaction();
+                    } else{
+                        attemptOfflineTransaction();
+                    }
 
                     Intent myIntent = new Intent(TagReceivedActivity.this, TransactionFeedbackActivity.class);
                     TagReceivedActivity.this.startActivity(myIntent);
@@ -91,7 +133,6 @@ public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            //TODO ErrorMessage if there is time left
                             etCode.setText("");
                         }
                     });
@@ -110,6 +151,130 @@ public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter
         else {
             Toast.makeText(this, "NFC not available on this device",
                     Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void attemptOfflineTransaction(){
+        //Letzten 2 Stellen abschneiden, um das Euro Zeichen zu entfernen
+        String toTransferWithoutCurrency = transferValue.substring(0, transferValue.length() -2);
+
+        //Komma mit Punkt ersetzen
+        toTransferWithoutCurrency = toTransferWithoutCurrency.replace(",", ".");
+
+        //String to Int
+        double transferValueInt = Double.parseDouble(toTransferWithoutCurrency);
+
+        saveTransaction(HomeActivity.user.getID(), senderID, transferValueInt);
+
+        File file = new File(getApplicationContext().getFilesDir(),"user.xml");
+
+        try {
+            //TODO test this
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(false);
+            factory.setValidating(false);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+
+            Document document = builder.parse(file);
+            Element catalog = document.getDocumentElement();
+            NodeList nodeList = catalog.getChildNodes();
+
+            Node balanceNode = nodeList.item(13);
+
+            double currentBalance = Double.parseDouble(getCharacterData(balanceNode));
+            double newBalance = currentBalance + transferValueInt;
+
+            file.delete();
+
+            createUserXML(u.getID(), u.getUsername(), u.getEmail(), u.getPassword(), u.getName(), u.getForename(), newBalance);
+
+
+            //finish();
+
+        }catch (Exception e){
+            System.out.println(e);
+        }
+    }
+
+    private void createUserXML(int id, String username, String email, String password, String name, String forename, double balance) {
+
+        String filename = "user.xml";
+
+        try {
+
+            FileOutputStream fos = null;
+
+            fos = openFileOutput(filename, Context.MODE_APPEND);
+
+
+
+            XmlSerializer serializer = Xml.newSerializer();
+            serializer.setOutput(fos, "UTF-8");
+            serializer.startDocument(null, Boolean.valueOf(true));
+            serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+
+            serializer.startTag(null, "user");
+
+
+            serializer.startTag(null, "id");
+
+            serializer.text(Integer.toString(id));
+
+            serializer.endTag(null, "id");
+
+
+            serializer.startTag(null, "username");
+
+            serializer.text(username);
+
+            serializer.endTag(null, "username");
+
+
+            serializer.startTag(null, "email");
+
+            serializer.text(email);
+
+            serializer.endTag(null, "email");
+
+
+            serializer.startTag(null, "password");
+
+            serializer.text(password);
+
+            serializer.endTag(null, "password");
+
+
+            serializer.startTag(null, "name");
+
+            serializer.text(name);
+
+            serializer.endTag(null, "name");
+
+
+            serializer.startTag(null, "forename");
+
+            serializer.text(forename);
+
+            serializer.endTag(null, "forename");
+
+
+            serializer.startTag(null, "balance");
+
+            serializer.text(Double.toString(balance));
+
+            serializer.endTag(null, "balance");
+
+
+            serializer.endTag(null, "user");
+
+            serializer.endDocument();
+
+            serializer.flush();
+
+            fos.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -133,14 +298,87 @@ public class TagReceivedActivity extends AppCompatActivity implements NfcAdapter
 
     }
 
-    //not used here actually
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
+    }
+
+    static public String getCharacterData(Node parent)
+    {
+        StringBuilder text = new StringBuilder();
+        if ( parent == null )
+            return text.toString();
+        NodeList children = parent.getChildNodes();
+        for (int k = 0, kn = children.getLength() ; k < kn ; k++) {
+            Node child = children.item(k);
+            if ( child.getNodeType() != Node.TEXT_NODE )
+                break;
+            text.append(child.getNodeValue());
+        }
+        return text.toString();
+    }
+
+    private void saveTransaction(int receiverID, int senderID, double transferValue){
+        String filename = "transactions.xml";
+
+        try {
+
+            FileOutputStream fos = null;
+
+            fos = openFileOutput(filename, Context.MODE_APPEND);
+
+
+
+            XmlSerializer serializer = Xml.newSerializer();
+            serializer.setOutput(fos, "UTF-8");
+            serializer.startDocument(null, Boolean.valueOf(true));
+            serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+
+            serializer.startTag(null, "transaction");
+
+
+            serializer.startTag(null, "receiverId");
+
+            serializer.text(Integer.toString(receiverID));
+
+            serializer.endTag(null, "receiverId");
+
+
+            serializer.startTag(null, "senderId");
+
+            serializer.text(Integer.toString(senderID));
+
+            serializer.endTag(null, "senderId");
+
+
+            serializer.startTag(null, "transferValue");
+
+            serializer.text(Double.toString(transferValue));
+
+            serializer.endTag(null, "transferValue");
+
+
+            serializer.endTag(null, "transaction");
+
+            serializer.endDocument();
+
+            serializer.flush();
+
+            fos.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public NdefMessage createNdefMessage(NfcEvent event) {
 
         return null;
     }
 
-    //not used here actually
     @Override
     public void onNdefPushComplete(NfcEvent event) {
         Toast.makeText(this, "NFC signal sent!", Toast.LENGTH_SHORT);

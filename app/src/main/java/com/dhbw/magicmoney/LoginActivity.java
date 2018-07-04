@@ -65,8 +65,6 @@ public class LoginActivity extends AppCompatActivity {
     private View mProgressView;
     private View mLoginFormView;
 
-    private Boolean isOnline = null;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,9 +113,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptOfflineLogin() {
-//        if (mAuthTask != null) {
-//            return;
-//        }
 
         // Reset errors.
         mEmailView.setError(null);
@@ -204,8 +199,7 @@ public class LoginActivity extends AppCompatActivity {
             }catch (Exception e){
                 System.out.println(e);
             }
-            System.out.println(emailXML);
-            System.out.println(passwordXML);
+
             if (email.equals(emailXML) && password.equals(passwordXML)) {
                 finish();
                 Intent myIntent = new Intent(LoginActivity.this, HomeActivity.class);
@@ -403,7 +397,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 File file = new File(getApplicationContext().getFilesDir(),"user.xml");
 
-                if(!file.exists()){
+                if(!file.exists() || file.length() == 0){
                     createUserXML(user.getID(), user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getForename(), user.getBalance());
                 }
 
@@ -424,7 +418,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         }
 
-        private void createUserXML(int id, String username, String email, String password, String name, String forename, double balance) {
+        public void createUserXML(int id, String username, String email, String password, String name, String forename, double balance) {
 
             String filename = "user.xml";
 
