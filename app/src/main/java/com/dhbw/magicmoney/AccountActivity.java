@@ -1,7 +1,10 @@
 package com.dhbw.magicmoney;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -28,6 +31,7 @@ public class AccountActivity extends NavigationActivity {
     private EditText oldpassView;
     private EditText newpass1View;
     private EditText newpass2View;
+    private Button changePass;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +74,7 @@ public class AccountActivity extends NavigationActivity {
         newpass1View = (EditText) findViewById(R.id.account_passNeu1);
         newpass2View = (EditText) findViewById(R.id.account_passNeu2);
 
-        Button changePass = (Button) findViewById(R.id.account_changePass);
+        changePass = (Button) findViewById(R.id.account_changePass);
 
         changePass.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,7 +99,10 @@ public class AccountActivity extends NavigationActivity {
         String newpass1 = newpass1View.getText().toString();
         String newpass2 = newpass2View.getText().toString();
 
-        if(newpass1.length() < 6){
+        if(!isNetworkAvailable()){
+            changePass.setError(getString(R.string.error_no_network));
+            changePass.requestFocus();
+        } else if(newpass1.length() < 6){
             newpass1View.setError(getString(R.string.error_invalid_password));
             newpass1View.requestFocus();
         } else if (!newpass1.equals(newpass2)){
@@ -106,6 +113,13 @@ public class AccountActivity extends NavigationActivity {
             passChangeTask.execute((Void) null);
         }
 
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
 
     public class PassChangeTask extends AsyncTask<Void, Void, Boolean> {

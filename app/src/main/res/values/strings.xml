@@ -11,6 +11,7 @@
     <string name="error_alreadyInUse_email">This email address is already in use</string>
     <string name="error_invalid_name">This name contains a invalid sign</string>
     <string name="error_invalid_password">This password is too short</string>
+    <string name="error_no_network">You need a network connection</string>
     <string name="error_notsame_password">This passwords are not the same</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>

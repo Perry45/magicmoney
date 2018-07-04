@@ -1,7 +1,10 @@
 package com.dhbw.magicmoney;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -42,38 +45,59 @@ public class ChargeActivity extends NavigationActivity {
         final TextView balanceView = (TextView) findViewById(R.id.charge_balance_view);
         balanceView.setText(u.getEURBalance());
 
-        Button fiveButton = (Button) findViewById(R.id.charge_charge5_button);
-        Button tenButton = (Button) findViewById(R.id.charge_charge10_button);
-        Button twentyButton = (Button) findViewById(R.id.charge_charge20_button);
-        Button fiftyButton = (Button) findViewById(R.id.charge_charge50_button);
+        final Button fiveButton = (Button) findViewById(R.id.charge_charge5_button);
+        final Button tenButton = (Button) findViewById(R.id.charge_charge10_button);
+        final Button twentyButton = (Button) findViewById(R.id.charge_charge20_button);
+        final Button fiftyButton = (Button) findViewById(R.id.charge_charge50_button);
 
         final Activity cont=this;
         fiveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new ChargeBalanceAsync(cont).execute(5);
-                balanceView.setText(u.getEURBalance());
+                if(isNetworkAvailable()) {
+                    new ChargeBalanceAsync(cont).execute(5);
+                    balanceView.setText(u.getEURBalance());
+                } else{
+                    fiveButton.setError(getString(R.string.error_no_network));
+                    fiveButton.requestFocus();
+                }
             }
         });
         tenButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new ChargeBalanceAsync(cont).execute(10);
-                balanceView.setText(u.getEURBalance());
+                if(isNetworkAvailable()) {
+                    new ChargeBalanceAsync(cont).execute(10);
+                    balanceView.setText(u.getEURBalance());
+                } else{
+                    tenButton.setError(getString(R.string.error_no_network));
+                    tenButton.requestFocus();
+                }
             }
         });
         twentyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new ChargeBalanceAsync(cont).execute(20);
-                balanceView.setText(u.getEURBalance());
+                if(isNetworkAvailable()) {
+                     new ChargeBalanceAsync(cont).execute(20);
+                     balanceView.setText(u.getEURBalance());
+                } else{
+                    twentyButton.setError(getString(R.string.error_no_network));
+                    twentyButton.requestFocus();
+                }
+
             }
         });
         fiftyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new ChargeBalanceAsync(cont).execute(50);
-                balanceView.setText(u.getEURBalance());
+                if(isNetworkAvailable()) {
+                    new ChargeBalanceAsync(cont).execute(50);
+                    balanceView.setText(u.getEURBalance());
+                } else{
+                    fiftyButton.setError(getString(R.string.error_no_network));
+                    fiftyButton.requestFocus();
+                }
             }
         });
 
@@ -83,6 +107,13 @@ public class ChargeActivity extends NavigationActivity {
         navHeaderName.setText(HomeActivity.user.getUsername());
         navHeaderEmail.setText(HomeActivity.user.getEmail());
 
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
 
 }
