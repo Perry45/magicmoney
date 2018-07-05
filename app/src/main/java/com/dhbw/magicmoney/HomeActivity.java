@@ -39,11 +39,13 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Date;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -123,9 +125,8 @@ public class HomeActivity extends NavigationActivity
                     NodeList nodeList = catalog.getChildNodes();
 
                     Node balanceNode = nodeList.item(13);
-                    balanceView.setText(LoginActivity.getCharacterData(balanceNode));
-
-
+                    String formattedBalance = NumberFormat.getCurrencyInstance(Locale.GERMANY).format(Double.parseDouble(LoginActivity.getCharacterData(balanceNode)));
+                    balanceView.setText(formattedBalance);
                     //finish();
 
                 }catch (Exception e){
@@ -248,7 +249,8 @@ public class HomeActivity extends NavigationActivity
                 NodeList nodeList = catalog.getChildNodes();
 
                 Node balanceNode = nodeList.item(13);
-                balanceView.setText(LoginActivity.getCharacterData(balanceNode));
+                String formattedBalance = NumberFormat.getCurrencyInstance(Locale.GERMANY).format(Double.parseDouble(LoginActivity.getCharacterData(balanceNode)));
+                balanceView.setText(formattedBalance);
 
 
                 //finish();
