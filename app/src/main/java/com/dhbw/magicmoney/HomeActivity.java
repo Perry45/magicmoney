@@ -42,6 +42,7 @@ import java.sql.Date;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -265,26 +266,14 @@ public class HomeActivity extends NavigationActivity
 
     private void generateTransactions() {
 
+            Collections.reverse(transactions);
+
             for (Transaction t : transactions) {
                 Transaction u = new Transaction(t.getSenderID(), t.getReceiverID(), t.getTransferValue(), t.getTimestamp());
 
                 transactionList.add(u);
             }
 
-            //Transaction u = new Transaction(1,2,2.5);
-            //transactionList.add(u);
-
-//        u = new Transaction(1,2,2.5);
-//        transactionList.add(u);
-//
-//        u = new Transaction(1,2,2.5);
-//        transactionList.add(u);
-//        u = new Transaction(1,2,2.5);
-//        transactionList.add(u);
-//        u = new Transaction(1,2,2.5);
-//        transactionList.add(u);
-//        u = new Transaction(1,2,2.5);
-//        transactionList.add(u);
 
 
         mAdapter.notifyDataSetChanged();
